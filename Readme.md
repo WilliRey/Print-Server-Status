@@ -1,0 +1,1 @@
+As a response to users reporting printer issues throughout the day on this server which hosts 50+ printers accross the US, I created this script to proactively monitor the status. Therefor if any printer is in an error state throughout the day I can proactively work on the issue before it's reported by any local users.
