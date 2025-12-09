@@ -31,6 +31,7 @@ $SendMailMessageNoti = @{
 Send-MailMessage $SendMailMessageNoti
 
 #TODO
+#replace Send-MailMessage (Deprecated)
 #Schedule to run Daily on server
 #Notify when printers change to offline/Error Status
 #Create incident ticket when printer goes offline
