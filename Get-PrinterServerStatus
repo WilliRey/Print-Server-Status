@@ -1,0 +1,71 @@
+function Get-PrintServerStatus {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory)]
+        [ValidateNotNullOrEmpty()]
+        [string]$ComputerName,
+
+        [Parameter(Mandatory)]
+        [ValidateNotNullOrEmpty()]
+        [string]$SmtpServer,
+
+        [Parameter(Mandatory)]
+        [ValidateNotNullOrEmpty()]
+        [string]$To,
+
+        [string]$From = "print-monitor@company.com",
+
+        [string]$OutputPath = $PSScriptRoot
+    )
+
+    try {
+        $date = Get-Date -Format 'yyyy-MM-dd'
+        $fileName = "PrintStatus_$date.csv"
+        $filePath = Join-Path $OutputPath $fileName
+
+        Write-Verbose "Querying printers on $ComputerName"
+
+        $printers = Get-Printer -ComputerName $ComputerName -ErrorAction Stop |
+            Select-Object Name, PrinterStatus, Location
+
+        if (-not $printers) {
+            throw "No printers returned from $ComputerName"
+        }
+
+        $printers |
+            Export-Csv -Path $filePath -NoTypeInformation -ErrorAction Stop
+
+        Write-Verbose "Report written to $filePath"
+
+        $offlinePrinters = $printers |
+            Where-Object { $_.PrinterStatus -ne 'Normal' }
+
+        $subject = if ($offlinePrinters) {
+            "ALERT: Printer Issues Detected ($date)"
+        } else {
+            "Daily Print Status Report ($date)"
+        }
+
+        $body = if ($offlinePrinters) {
+            "One or more printers are not in a normal state.`nSee attached report."
+        } else {
+            "All printers are reporting normal status."
+        }
+
+        Send-MailMessage `
+            -From $From `
+            -To $To `
+            -Subject $subject `
+            -Body $body `
+            -Attachments $filePath `
+            -SmtpServer $SmtpServer `
+            -Priority High `
+            -ErrorAction Stop
+
+        Write-Verbose "Email sent successfully"
+    }
+    catch {
+        Write-Error "Print status check failed: $_"
+        throw
+    }
+}
